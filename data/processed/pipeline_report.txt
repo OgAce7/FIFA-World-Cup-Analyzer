@@ -1,0 +1,40 @@
+FIFA World Cup Pipeline — Run Report
+========================================
+Rows before: 1069
+Rows after:  1069
+Columns before: 23
+Columns after (matches_clean): 32
+Duplicates removed: 0
+matches_long rows: 2138
+
+Missing values after processing (matches_clean):
+  group: 290
+  halftime_score_team1: 709
+  halftime_score_team2: 709
+  fulltime_score_team1: 1
+  fulltime_score_team2: 1
+  extra_time_score_team1: 987
+  extra_time_score_team2: 987
+  penalty_score_team1: 1030
+  penalty_score_team2: 1030
+  city: 1
+  total_goals_match: 1
+  goal_difference: 1
+
+Derived columns added:
+  - is_historical_entity
+  - has_halftime_data
+  - went_to_extra_time
+  - went_to_penalties
+  - is_walkover
+  - total_goals_match
+  - goal_difference
+  - is_draw
+  - team1_result
+  - team2_result
+  - tournament_stage_order
+
+Output files:
+  - /home/claude/project/data/processed/matches_clean.csv
+  - /home/claude/project/data/processed/matches_long.csv
+  - /home/claude/project/data/processed/team_name_map.csv
