@@ -1,0 +1,43 @@
+FIFA World Cup Win Predictor — Evaluation Results
+====================================================
+Train rows (team-per-match, with prior history): 1528
+Test rows  (2018, 2022, 2026 tournaments only)  : 448
+Train win rate (class balance): 0.401
+Test win rate (class balance) : 0.42
+
+Logistic Regression (our model):
+  Accuracy : 0.705
+  Precision: 0.700
+  Recall   : 0.521
+  F1 score : 0.598
+  ROC-AUC  : 0.770
+  Confusion matrix [[TN,FP],[FN,TP]]: [[218, 42], [90, 98]]
+
+Baseline: Majority Class:
+  Accuracy : 0.580
+  Precision: 0.000
+  Recall   : 0.000
+  F1 score : 0.000
+  ROC-AUC  : 0.500
+  Confusion matrix [[TN,FP],[FN,TP]]: [[260, 0], [188, 0]]
+
+Baseline: Stratified Random:
+  Accuracy : 0.551
+  Precision: 0.465
+  Recall   : 0.463
+  F1 score : 0.464
+  ROC-AUC  : 0.539
+  Confusion matrix [[TN,FP],[FN,TP]]: [[160, 100], [101, 87]]
+
+Feature importance (standardized logistic regression coefficients):
+                     feature  coefficient
+    team_prior_avg_goals_for     0.495945
+     opp_prior_avg_goals_for    -0.445856
+    opp_prior_matches_played    -0.375843
+team_prior_avg_goals_against    -0.352159
+   team_prior_matches_played     0.351914
+                     is_host     0.319314
+ opp_prior_avg_goals_against     0.284003
+      tournament_stage_order     0.205516
+         team_prior_win_rate    -0.194687
+          opp_prior_win_rate     0.157634
