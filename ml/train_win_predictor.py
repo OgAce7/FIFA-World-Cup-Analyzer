@@ -52,6 +52,7 @@ Usage:
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import joblib
@@ -80,6 +81,7 @@ MODEL_PATH = ML_DIR / "win_predictor_model.joblib"
 EVAL_PATH = ML_DIR / "evaluation_results.txt"
 IMPORTANCE_PATH = ML_DIR / "feature_importance.csv"
 SUMMARY_PATH = ML_DIR / "model_summary.md"
+RESULTS_JSON_PATH = ML_DIR / "results.json"  # structured metrics for API consumption
 
 TEST_YEARS = [2018, 2022, 2026]  # held-out tournaments, never seen in training
 
@@ -280,6 +282,35 @@ def run() -> dict:
     }
 
 
+def write_results_json(results: dict) -> None:
+    """
+    Writes a compact, structured JSON file with everything an API layer
+    would need to serve the 'approved ML result' without re-parsing the
+    human-readable .txt/.md reports. This is the single source of truth
+    the API reads from — no metrics are recomputed or reformatted there.
+    """
+    payload = {
+        "problem": "Predict whether a team wins a given World Cup match",
+        "model_type": "Logistic Regression (binary classification)",
+        "test_years": TEST_YEARS,
+        "n_train": results["n_train"],
+        "n_test": results["n_test"],
+        "train_win_rate": results["train_win_rate"],
+        "test_win_rate": results["test_win_rate"],
+        "model_metrics": {
+            k: v for k, v in results["model_metrics"].items()
+        },
+        "majority_baseline_metrics": {
+            k: v for k, v in results["majority_baseline_metrics"].items()
+        },
+        "stratified_baseline_metrics": {
+            k: v for k, v in results["stratified_baseline_metrics"].items()
+        },
+        "feature_importance": results["feature_importance"].to_dict(orient="records"),
+    }
+    RESULTS_JSON_PATH.write_text(json.dumps(payload, indent=2))
+
+
 def write_evaluation_report(results: dict) -> None:
     def fmt_metrics(m: dict, label: str) -> str:
         lines = [f"{label}:"]
@@ -387,9 +418,10 @@ if __name__ == "__main__":
     results = run()
     write_evaluation_report(results)
     write_model_summary(results)
+    write_results_json(results)
     print("Training complete.")
     print(f"Train rows: {results['n_train']}  Test rows: {results['n_test']}")
     print(f"Model accuracy: {results['model_metrics']['accuracy']:.3f}  "
           f"ROC-AUC: {results['model_metrics']['roc_auc']:.3f}")
     print(f"Majority baseline accuracy: {results['majority_baseline_metrics']['accuracy']:.3f}")
-    print(f"Saved: {MODEL_PATH}, {EVAL_PATH}, {IMPORTANCE_PATH}, {SUMMARY_PATH}")
+    print(f"Saved: {MODEL_PATH}, {EVAL_PATH}, {IMPORTANCE_PATH}, {SUMMARY_PATH}, {RESULTS_JSON_PATH}")
