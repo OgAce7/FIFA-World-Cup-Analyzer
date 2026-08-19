@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>World Cup Analytics — 1930 to 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:            #0d1117;
+    --surface:       #151c26;
+    --surface-2:     #1b2430;
+    --line:          #263140;
+    --text:          #e7ecf2;
+    --text-dim:      #8b98a9;
+    --pitch:         #35c98c;
+    --pitch-dim:     #1f7a56;
+    --gold:          #e3b34f;
+    --loss:          #e2637a;
+    --radius: 10px;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter', sans-serif;
+    line-height:1.5;
+    padding-bottom:80px;
+  }
+
+  h1,h2,h3, .display{
+    font-family:'Oswald', sans-serif;
+    font-weight:600;
+    letter-spacing:0.01em;
+    text-transform:uppercase;
+  }
+
+  .mono{ font-family:'JetBrains Mono', monospace; }
+
+  a{color:var(--pitch);}
+
+  /* ---------- Header ---------- */
+  header.app-header{
+    background:linear-gradient(180deg, #101722 0%, var(--bg) 100%);
+    border-bottom:1px solid var(--line);
+    padding:28px 24px 22px;
+  }
+  .header-inner{max-width:1180px; margin:0 auto;}
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    letter-spacing:0.14em;
+    color:var(--pitch);
+    text-transform:uppercase;
+    margin-bottom:8px;
+  }
+  header.app-header h1{
+    font-size:clamp(28px, 4vw, 42px);
+    line-height:1.05;
+  }
+  header.app-header p{
+    color:var(--text-dim);
+    margin-top:8px;
+    max-width:640px;
+    font-size:15px;
+  }
+
+  /* ---------- Filter bar ---------- */
+  .filter-bar{
+    position:sticky; top:0; z-index:20;
+    background:rgba(13,17,23,0.92);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line);
+    padding:14px 24px;
+  }
+  .filter-inner{
+    max-width:1180px; margin:0 auto;
+    display:flex; flex-wrap:wrap; gap:12px; align-items:center;
+  }
+  .field{display:flex; flex-direction:column; gap:4px;}
+  .field label{
+    font-size:11px; text-transform:uppercase; letter-spacing:0.08em;
+    color:var(--text-dim); font-family:'JetBrains Mono', monospace;
+  }
+  select{
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    padding:9px 12px;
+    border-radius:8px;
+    font-family:'Inter', sans-serif;
+    font-size:14px;
+    min-width:200px;
+    cursor:pointer;
+  }
+  select:focus{outline:2px solid var(--pitch); outline-offset:1px;}
+
+  button.reset-btn{
+    align-self:flex-end;
+    background:transparent;
+    border:1px solid var(--line);
+    color:var(--text-dim);
+    padding:9px 16px;
+    border-radius:8px;
+    font-family:'Inter', sans-serif;
+    font-size:13px;
+    cursor:pointer;
+  }
+  button.reset-btn:hover{border-color:var(--loss); color:var(--loss);}
+  button.reset-btn:focus-visible{outline:2px solid var(--pitch); outline-offset:1px;}
+
+  .active-filter-pill{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    background:var(--pitch-dim);
+    color:#eafff4;
+    padding:6px 12px;
+    border-radius:999px;
+    align-self:flex-end;
+  }
+
+  /* ---------- Layout ---------- */
+  main{max-width:1180px; margin:0 auto; padding:32px 24px 0;}
+  section{margin-bottom:52px;}
+  .section-head{margin-bottom:18px;}
+  .section-head h2{font-size:20px; color:var(--text);}
+  .section-head .sub{color:var(--text-dim); font-size:13px; margin-top:2px;}
+
+  /* ---------- KPI cards ---------- */
+  .kpi-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));
+    gap:12px;
+  }
+  .kpi-card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-top:3px solid var(--pitch);
+    border-radius:var(--radius);
+    padding:16px 18px;
+  }
+  .kpi-card.gold{border-top-color:var(--gold);}
+  .kpi-card .kpi-label{
+    font-size:11px; text-transform:uppercase; letter-spacing:0.08em;
+    color:var(--text-dim); font-family:'JetBrains Mono', monospace;
+    margin-bottom:8px;
+  }
+  .kpi-card .kpi-value{
+    font-family:'JetBrains Mono', monospace;
+    font-size:28px; font-weight:700; color:var(--text);
+  }
+  .kpi-card .kpi-value small{font-size:14px; color:var(--text-dim); font-weight:400;}
+
+  /* ---------- Chart grid ---------- */
+  .chart-grid{
+    display:grid;
+    grid-template-columns:repeat(2, 1fr);
+    gap:16px;
+  }
+  .chart-grid.single{grid-template-columns:1fr;}
+  .chart-card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:18px;
+    min-height:300px;
+    display:flex; flex-direction:column;
+  }
+  .chart-card h3{
+    font-size:14px; font-weight:500; color:var(--text);
+    text-transform:none; font-family:'Inter',sans-serif; font-weight:600;
+    margin-bottom:2px;
+  }
+  .chart-card .chart-q{font-size:12px; color:var(--text-dim); margin-bottom:12px;}
+  .chart-card canvas{flex:1; max-height:260px;}
+  .chart-card.hero canvas{max-height:340px;}
+  .chart-card.hero{grid-column:1 / -1;}
+
+  /* ---------- List (host country) ---------- */
+  .host-list{list-style:none; font-family:'JetBrains Mono', monospace; font-size:13px;}
+  .host-list li{
+    display:flex; justify-content:space-between;
+    padding:7px 0; border-bottom:1px solid var(--line);
+    color:var(--text-dim);
+  }
+  .host-list li span.count{color:var(--gold); font-weight:700;}
+
+  /* ---------- States ---------- */
+  .state-box{
+    display:flex; align-items:center; justify-content:center;
+    min-height:200px; color:var(--text-dim);
+    font-size:14px; text-align:center; flex-direction:column; gap:8px;
+    grid-column:1/-1;
+  }
+  .state-box.error{color:var(--loss);}
+  .spinner{
+    width:22px; height:22px; border-radius:50%;
+    border:3px solid var(--line); border-top-color:var(--pitch);
+    animation:spin 0.8s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+  @media (prefers-reduced-motion: reduce){ .spinner{animation:none;} }
+
+  .empty-hint{font-size:13px; color:var(--text-dim);}
+
+  /* ---------- Country view ---------- */
+  #country-view{
+    border-top:1px solid var(--line);
+    padding-top:32px;
+    display:none;
+  }
+  #country-view.visible{display:block;}
+  .country-heading{
+    display:flex; align-items:baseline; gap:12px; margin-bottom:18px;
+  }
+  .country-heading h2{font-size:26px;}
+  .country-heading .tag{
+    font-family:'JetBrains Mono', monospace; font-size:12px;
+    color:var(--pitch); border:1px solid var(--pitch-dim);
+    padding:3px 9px; border-radius:999px;
+  }
+
+  /* ---------- ML section ---------- */
+  #ml-section{border-top:1px solid var(--line); padding-top:32px;}
+  .ml-explainer{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:20px;
+    font-size:14px;
+    color:var(--text-dim);
+    margin-top:16px;
+  }
+  .ml-explainer strong{color:var(--text); font-weight:600;}
+  .limitation-tag{
+    display:inline-block;
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    color:var(--gold);
+    border:1px solid #4a3c1f;
+    background:#1c1509;
+    padding:2px 8px;
+    border-radius:6px;
+    margin-top:12px;
+  }
+
+  footer{
+    max-width:1180px; margin:40px auto 0; padding:20px 24px;
+    color:var(--text-dim); font-size:12px; border-top:1px solid var(--line);
+  }
+
+  @media (max-width: 780px){
+    .chart-grid{grid-template-columns:1fr;}
+    select{min-width:140px;}
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-inner">
+    <div class="eyebrow">1930 — 2026</div>
+    <h1>World Cup Analytics</h1>
+    <p>Match-by-match history of every FIFA World Cup, from Uruguay 1930 to the expanded 48-team 2026 tournament — explore scoring trends, national team records, and a win-probability model trained on tournament history.</p>
+  </div>
+</header>
+
+<div class="filter-bar">
+  <div class="filter-inner">
+    <div class="field">
+      <label for="country-select">Country</label>
+      <select id="country-select">
+        <option value="">All countries</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="year-select">World Cup</label>
+      <select id="year-select">
+        <option value="">All years</option>
+      </select>
+    </div>
+    <button class="reset-btn" id="reset-btn" type="button">Clear filters</button>
+    <span class="active-filter-pill" id="active-pill" style="display:none;"></span>
+  </div>
+</div>
+
+<main>
+
+  <!-- ============ OVERVIEW ============ -->
+  <section id="overview-section">
+    <div class="section-head">
+      <h2>Overview</h2>
+      <div class="sub" id="overview-sub">All tournaments, 1930–2026</div>
+    </div>
+
+    <div class="kpi-grid" id="kpi-grid" style="margin-bottom:20px;">
+      <div class="state-box"><div class="spinner"></div><span>Loading stats…</span></div>
+    </div>
+
+    <div class="chart-grid single" style="margin-bottom:16px;">
+      <div class="chart-card hero">
+        <h3>Goals per Match, by Tournament</h3>
+        <div class="chart-q">Default view — how has scoring intensity changed across World Cup history?</div>
+        <canvas id="chart-scatter"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-grid">
+      <div class="chart-card">
+        <h3>Matches by Stage</h3>
+        <div class="chart-q">How is the tournament structured?</div>
+        <canvas id="chart-stage"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>How Matches Are Decided</h3>
+        <div class="chart-q">Normal time vs. draws vs. extra time vs. penalties</div>
+        <canvas id="chart-result-method"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Top Teams by Wins</h3>
+        <div class="chart-q">Which national teams have won the most World Cup matches?</div>
+        <canvas id="chart-top-teams"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Goal Margin Distribution</h3>
+        <div class="chart-q">How competitive are matches typically?</div>
+        <canvas id="chart-margin"></canvas>
+      </div>
+      <div class="chart-card" style="grid-column:1/-1;">
+        <h3>Tournaments Hosted, by Country</h3>
+        <div class="chart-q">Which countries have hosted the World Cup, and how many times?</div>
+        <ul class="host-list" id="host-list"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ COUNTRY VIEW ============ -->
+  <section id="country-view">
+    <div class="country-heading">
+      <h2 id="country-name">—</h2>
+      <span class="tag" id="country-tag">Country view</span>
+    </div>
+
+    <div class="kpi-grid" id="country-kpi-grid" style="margin-bottom:20px;"></div>
+
+    <div class="chart-grid">
+      <div class="chart-card">
+        <h3>Win / Draw / Loss by Tournament</h3>
+        <div class="chart-q">How has this country's performance trended over time?</div>
+        <canvas id="chart-country-record"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Goals For vs. Against</h3>
+        <div class="chart-q">Offensive vs. defensive balance, per tournament</div>
+        <canvas id="chart-country-goals"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Deepest Stage Reached</h3>
+        <div class="chart-q">How far did this country progress each tournament?</div>
+        <canvas id="chart-country-stage"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Result Method Breakdown</h3>
+        <div class="chart-q">Does this country tend to need extra time or penalties?</div>
+        <canvas id="chart-country-result-method"></canvas>
+      </div>
+      <div class="chart-card" style="grid-column:1/-1;">
+        <h3>Most Frequent Opponents</h3>
+        <div class="chart-q">Who has this country faced most often?</div>
+        <canvas id="chart-country-opponents"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ML SECTION ============ -->
+  <section id="ml-section">
+    <div class="section-head">
+      <h2>Win Predictor Model</h2>
+      <div class="sub">Logistic regression estimating a team's win probability from pre-match history only</div>
+    </div>
+
+    <div class="kpi-grid" id="ml-kpi-grid">
+      <div class="state-box"><div class="spinner"></div><span>Loading model results…</span></div>
+    </div>
+
+    <div class="chart-grid single" style="margin-top:16px;">
+      <div class="chart-card hero">
+        <h3>Feature Importance</h3>
+        <div class="chart-q">Standardized logistic regression coefficients — positive pushes toward "Win"</div>
+        <canvas id="chart-feature-importance"></canvas>
+      </div>
+    </div>
+
+    <div class="ml-explainer" id="ml-explainer">Loading explanation…</div>
+  </section>
+
+</main>
+
+<footer>
+  Data: FIFA World Cup matches, 1930–2026. Model and charts are exploratory, not predictive guarantees.
+</footer>
+
+<script>
+const API_BASE = "http://127.0.0.1:5000";
+
+const charts = {}; // holds Chart.js instances so we can destroy/rebuild on filter change
+
+Chart.defaults.color = "#8b98a9";
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.borderColor = "#263140";
+
+const PALETTE = {
+  pitch: "#35c98c",
+  pitchDim: "rgba(53,201,140,0.35)",
+  gold: "#e3b34f",
+  goldDim: "rgba(227,179,79,0.35)",
+  loss: "#e2637a",
+  lossDim: "rgba(226,99,122,0.35)",
+  text: "#e7ecf2",
+};
+
+// ---------------------------------------------------------------
+// Fetch helper with clean error propagation
+// ---------------------------------------------------------------
+async function apiGet(path){
+  let res;
+  try{
+    res = await fetch(API_BASE + path);
+  }catch(err){
+    throw new Error("Can't reach the API. Is the backend running at " + API_BASE + "?");
+  }
+  const body = await res.json().catch(() => null);
+  if(!res.ok){
+    throw new Error(body && body.error ? body.error : ("Request failed (" + res.status + ")"));
+  }
+  return body;
+}
+
+function destroyChart(id){
+  if(charts[id]){ charts[id].destroy(); delete charts[id]; }
+}
+
+function showGridState(gridEl, message, isError){
+  gridEl.innerHTML = `<div class="state-box ${isError ? 'error':''}">
+    ${isError ? '' : '<div class="spinner"></div>'}
+    <span>${message}</span>
+  </div>`;
+}
+
+// ---------------------------------------------------------------
+// State
+// ---------------------------------------------------------------
+let selectedCountry = "";
+let selectedYear = "";
+
+// ---------------------------------------------------------------
+// Init: populate filter dropdowns
+// ---------------------------------------------------------------
+async function initFilters(){
+  const countrySelect = document.getElementById("country-select");
+  const yearSelect = document.getElementById("year-select");
+  try{
+    const [countriesData, yearsData] = await Promise.all([
+      apiGet("/api/countries"),
+      apiGet("/api/years"),
+    ]);
+    countriesData.countries.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c; opt.textContent = c;
+      countrySelect.appendChild(opt);
+    });
+    yearsData.years.slice().reverse().forEach(y => {
+      const opt = document.createElement("option");
+      opt.value = y; opt.textContent = y;
+      yearSelect.appendChild(opt);
+    });
+  }catch(err){
+    showGridState(document.getElementById("kpi-grid"), err.message, true);
+  }
+}
+
+function updateActivePill(){
+  const pill = document.getElementById("active-pill");
+  const parts = [];
+  if(selectedCountry) parts.push(selectedCountry);
+  if(selectedYear) parts.push(selectedYear);
+  if(parts.length){
+    pill.style.display = "inline-block";
+    pill.textContent = parts.join(" · ");
+  } else {
+    pill.style.display = "none";
+  }
+}
+
+// ---------------------------------------------------------------
+// Overview (global) section
+// ---------------------------------------------------------------
+async function loadOverview(){
+  const kpiGrid = document.getElementById("kpi-grid");
+  const sub = document.getElementById("overview-sub");
+  sub.textContent = selectedYear ? `Tournament: ${selectedYear}` : "All tournaments, 1930–2026";
+  showGridState(kpiGrid, "Loading stats…", false);
+
+  const path = selectedYear ? `/api/tournaments/${selectedYear}` : `/api/global`;
+
+  let data;
+  try{
+    data = await apiGet(path);
+  }catch(err){
+    showGridState(kpiGrid, err.message, true);
+    return;
+  }
+
+  renderOverviewKPIs(kpiGrid, data);
+  renderScatter(data.goals_per_tournament);
+  renderStageChart(data.matches_by_stage);
+  renderResultMethodChart("chart-result-method", data.result_method_breakdown);
+  renderTopTeamsChart(data.top_teams_by_wins);
+  renderMarginChart(data.goal_margin_distribution);
+  renderHostList(data.host_country_summary);
+}
+
+function renderOverviewKPIs(grid, data){
+  const totalMatches = data.matches_by_stage.reduce((s,r) => s + r.match_count, 0);
+  const totalGoalsRow = data.goals_per_tournament;
+  const avgGoals = totalGoalsRow.length
+    ? (totalGoalsRow.reduce((s,r)=>s+r.avg_goals_per_match*r.matches_played,0) /
+       totalGoalsRow.reduce((s,r)=>s+r.matches_played,0)).toFixed(2)
+    : "—";
+  const tournamentsCount = selectedYear ? 1 : totalGoalsRow.length;
+  const topTeam = data.top_teams_by_wins[0];
+
+  grid.innerHTML = `
+    <div class="kpi-card">
+      <div class="kpi-label">Tournaments</div>
+      <div class="kpi-value">${tournamentsCount}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Matches</div>
+      <div class="kpi-value">${totalMatches}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Avg Goals / Match</div>
+      <div class="kpi-value">${avgGoals}</div>
+    </div>
+    <div class="kpi-card gold">
+      <div class="kpi-label">Most Wins</div>
+      <div class="kpi-value">${topTeam ? topTeam.wins : "—"} <small>${topTeam ? topTeam.team : ""}</small></div>
+    </div>
+  `;
+}
+
+function renderScatter(rows){
+  destroyChart("scatter");
+  const ctx = document.getElementById("chart-scatter");
+  if(!rows.length){ return; }
+  charts.scatter = new Chart(ctx, {
+    type: "scatter",
+    data: {
+      datasets: [{
+        label: "Avg goals per match",
+        data: rows.map(r => ({x: r.world_cup_year, y: r.avg_goals_per_match})),
+        backgroundColor: PALETTE.pitch,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      scales:{
+        x:{title:{display:true, text:"World Cup Year"}, grid:{color:"#1b2430"}},
+        y:{title:{display:true, text:"Avg Goals / Match"}, grid:{color:"#1b2430"}, beginAtZero:true},
+      },
+      plugins:{legend:{display:false}}
+    }
+  });
+}
+
+function renderStageChart(rows){
+  destroyChart("stage");
+  const ctx = document.getElementById("chart-stage");
+  if(!rows.length) return;
+  charts.stage = new Chart(ctx, {
+    type: "bar",
+    data:{
+      labels: rows.map(r=>r.stage),
+      datasets:[{ data: rows.map(r=>r.match_count), backgroundColor: PALETTE.pitchDim, borderColor: PALETTE.pitch, borderWidth:1.5, borderRadius:4 }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      scales:{ x:{ticks:{maxRotation:60, minRotation:40, font:{size:10}}, grid:{display:false}}, y:{grid:{color:"#1b2430"}, beginAtZero:true} },
+      plugins:{legend:{display:false}}
+    }
+  });
+}
+
+function renderResultMethodChart(canvasId, rows){
+  const key = canvasId;
+  destroyChart(key);
+  const ctx = document.getElementById(canvasId);
+  if(!rows || !rows.length) return;
+  charts[key] = new Chart(ctx, {
+    type:"doughnut",
+    data:{
+      labels: rows.map(r=>r.result_method),
+      datasets:[{
+        data: rows.map(r=>r.match_count),
+        backgroundColor:["#35c98c","#e3b34f","#4f8fe3","#e2637a","#9b6fe3","#5fbcd3"],
+        borderColor:"#151c26", borderWidth:2,
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{position:"bottom", labels:{boxWidth:10, font:{size:11}}} }
+    }
+  });
+}
+
+function renderTopTeamsChart(rows){
+  destroyChart("topteams");
+  const ctx = document.getElementById("chart-top-teams");
+  if(!rows.length) return;
+  charts.topteams = new Chart(ctx, {
+    type:"bar",
+    data:{
+      labels: rows.map(r=>r.team),
+      datasets:[{ data: rows.map(r=>r.wins), backgroundColor: PALETTE.goldDim, borderColor: PALETTE.gold, borderWidth:1.5, borderRadius:4 }]
+    },
+    options:{
+      indexAxis:"y",
+      responsive:true, maintainAspectRatio:false,
+      scales:{ x:{grid:{color:"#1b2430"}, beginAtZero:true}, y:{grid:{display:false}} },
+      plugins:{legend:{display:false}}
+    }
+  });
+}
+
+function renderMarginChart(rows){
+  destroyChart("margin");
+  const ctx = document.getElementById("chart-margin");
+  if(!rows.length) return;
+  charts.margin = new Chart(ctx, {
+    type:"bar",
+    data:{
+      labels: rows.map(r=>r.margin_bin + (r.margin_bin==="1"?" goal":" goals")),
+      datasets:[{ data: rows.map(r=>r.match_count), backgroundColor: PALETTE.pitchDim, borderColor: PALETTE.pitch, borderWidth:1.5, borderRadius:4 }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      scales:{ x:{grid:{display:false}}, y:{grid:{color:"#1b2430"}, beginAtZero:true} },
+      plugins:{legend:{display:false}}
+    }
+  });
+}
+
+function renderHostList(rows){
+  const list = document.getElementById("host-list");
+  if(!rows.length){ list.innerHTML = `<li><span>No host data for this filter</span></li>`; return; }
+  const sorted = rows.slice().sort((a,b)=>b.tournaments_hosted - a.tournaments_hosted);
+  list.innerHTML = sorted.map(r =>
+    `<li><span>${r.host_country}</span><span class="count">${r.tournaments_hosted}×</span></li>`
+  ).join("");
+}
+
+// ---------------------------------------------------------------
+// Country view
+// ---------------------------------------------------------------
+async function loadCountryView(){
+  const section = document.getElementById("country-view");
+  const kpiGrid = document.getElementById("country-kpi-grid");
+
+  if(!selectedCountry){
+    section.classList.remove("visible");
+    return;
+  }
+  section.classList.add("visible");
+  document.getElementById("country-name").textContent = selectedCountry;
+  document.getElementById("country-tag").textContent = selectedYear ? `${selectedYear} only` : "All tournaments";
+
+  showGridState(kpiGrid, "Loading country data…", false);
+
+  const yearParam = selectedYear ? `?year=${selectedYear}` : "";
+  let data;
+  try{
+    data = await apiGet(`/api/countries/${encodeURIComponent(selectedCountry)}${yearParam}`);
+  }catch(err){
+    showGridState(kpiGrid, err.message, true);
+    return;
+  }
+
+  renderCountryKPIs(kpiGrid, data);
+  renderCountryRecordChart(data.record_by_year);
+  renderCountryGoalsChart(data.goals_for_against);
+  renderCountryStageChart(data.deepest_stage_by_year);
+  renderResultMethodChart("chart-country-result-method", data.result_method_breakdown);
+  renderCountryOpponentsChart(data.top_opponents);
+}
+
+function renderCountryKPIs(grid, data){
+  const record = data.record_by_year;
+  const wins = record.reduce((s,r)=>s+r.Win,0);
+  const draws = record.reduce((s,r)=>s+r.Draw,0);
+  const losses = record.reduce((s,r)=>s+r.Loss,0);
+  const total = wins+draws+losses;
+  const winPct = total ? Math.round((wins/total)*100) : 0;
+
+  if(total === 0){
+    grid.innerHTML = `<div class="state-box"><span>No matches found for ${selectedCountry}${selectedYear ? " in " + selectedYear : ""}.</span></div>`;
+    return;
+  }
+
+  const goals = data.goals_for_against;
+  const goalsFor = goals.reduce((s,r)=>s+r.goals_for,0);
+  const goalsAgainst = goals.reduce((s,r)=>s+r.goals_against,0);
+
+  grid.innerHTML = `
+    <div class="kpi-card">
+      <div class="kpi-label">Record (W–D–L)</div>
+      <div class="kpi-value">${wins}–${draws}–${losses}</div>
+    </div>
+    <div class="kpi-card gold">
+      <div class="kpi-label">Win Rate</div>
+      <div class="kpi-value">${winPct}<small>%</small></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Goals For / Against</div>
+      <div class="kpi-value">${goalsFor} <small>/ ${goalsAgainst}</small></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Matches Played</div>
+      <div class="kpi-value">${total}</div>
+    </div>
+  `;
+}
+
+function renderCountryRecordChart(rows){
+  destroyChart("crecord");
+  const ctx = document.getElementById("chart-country-record");
+  if(!rows.length) return;
+  charts.crecord = new Chart(ctx, {
+    type:"bar",
+    data:{
+      labels: rows.map(r=>r.world_cup_year),
+      datasets:[
+        {label:"Win", data: rows.map(r=>r.Win), backgroundColor: PALETTE.pitch, stack:"r"},
+        {label:"Draw", data: rows.map(r=>r.Draw), backgroundColor: PALETTE.gold, stack:"r"},
+        {label:"Loss", data: rows.map(r=>r.Loss), backgroundColor: PALETTE.loss, stack:"r"},
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      scales:{ x:{stacked:true, grid:{display:false}}, y:{stacked:true, grid:{color:"#1b2430"}, beginAtZero:true, ticks:{stepSize:1}} },
+      plugins:{legend:{position:"bottom", labels:{boxWidth:10, font:{size:11}}}}
+    }
+  });
+}
+
+function renderCountryGoalsChart(rows){
+  destroyChart("cgoals");
+  const ctx = document.getElementById("chart-country-goals");
+  if(!rows.length) return;
+  charts.cgoals = new Chart(ctx, {
+    type:"bar",
+    data:{
+      labels: rows.map(r=>r.world_cup_year),
+      datasets:[
+        {label:"Goals for", data: rows.map(r=>r.goals_for), backgroundColor: PALETTE.pitchDim, borderColor:PALETTE.pitch, borderWidth:1.5},
+        {label:"Goals against", data: rows.map(r=>r.goals_against), backgroundColor: PALETTE.lossDim, borderColor:PALETTE.loss, borderWidth:1.5},
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      scales:{ x:{grid:{display:false}}, y:{grid:{color:"#1b2430"}, beginAtZero:true} },
+      plugins:{legend:{position:"bottom", labels:{boxWidth:10, font:{size:11}}}}
+    }
+  });
+}
+
+function renderCountryStageChart(rows){
+  destroyChart("cstage");
+  const ctx = document.getElementById("chart-country-stage");
+  if(!rows.length) return;
+  charts.cstage = new Chart(ctx, {
+    type:"line",
+    data:{
+      labels: rows.map(r=>r.world_cup_year),
+      datasets:[{
+        label:"Deepest stage",
+        data: rows.map(r=>r.deepest_stage_order),
+        borderColor: PALETTE.gold, backgroundColor: PALETTE.goldDim,
+        stepped:true, pointRadius:4, pointBackgroundColor: PALETTE.gold,
+        tension:0,
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      scales:{ x:{grid:{display:false}}, y:{grid:{color:"#1b2430"}, ticks:{stepSize:1}} },
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{ label: (item) => rows[item.dataIndex].deepest_stage }}
+      }
+    }
+  });
+}
+
+function renderCountryOpponentsChart(rows){
+  destroyChart("copponents");
+  const ctx = document.getElementById("chart-country-opponents");
+  if(!rows.length) return;
+  charts.copponents = new Chart(ctx, {
+    type:"bar",
+    data:{
+      labels: rows.map(r=>r.opponent),
+      datasets:[{ data: rows.map(r=>r.matches_played), backgroundColor: PALETTE.pitchDim, borderColor: PALETTE.pitch, borderWidth:1.5, borderRadius:4 }]
+    },
+    options:{
+      indexAxis:"y",
+      responsive:true, maintainAspectRatio:false,
+      scales:{ x:{grid:{color:"#1b2430"}, beginAtZero:true, ticks:{stepSize:1}}, y:{grid:{display:false}} },
+      plugins:{legend:{display:false}}
+    }
+  });
+}
+
+// ---------------------------------------------------------------
+// ML section
+// ---------------------------------------------------------------
+async function loadMLSection(){
+  const kpiGrid = document.getElementById("ml-kpi-grid");
+  const explainer = document.getElementById("ml-explainer");
+  showGridState(kpiGrid, "Loading model results…", false);
+
+  let data;
+  try{
+    data = await apiGet("/api/ml/result");
+  }catch(err){
+    showGridState(kpiGrid, err.message, true);
+    explainer.textContent = "Model explanation unavailable — could not reach the API.";
+    return;
+  }
+
+  const m = data.model_metrics;
+  const base = data.majority_baseline_metrics;
+
+  kpiGrid.innerHTML = `
+    <div class="kpi-card">
+      <div class="kpi-label">Accuracy</div>
+      <div class="kpi-value">${(m.accuracy*100).toFixed(1)}<small>%</small></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">ROC-AUC</div>
+      <div class="kpi-value">${m.roc_auc.toFixed(2)}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">F1 Score</div>
+      <div class="kpi-value">${m.f1.toFixed(2)}</div>
+    </div>
+    <div class="kpi-card gold">
+      <div class="kpi-label">vs. Majority Baseline</div>
+      <div class="kpi-value">+${((m.accuracy-base.accuracy)*100).toFixed(1)}<small>pts acc.</small></div>
+    </div>
+  `;
+
+  renderFeatureImportanceChart(data.feature_importance);
+
+  explainer.innerHTML = `
+    <strong>What this predicts:</strong> the probability a team wins a given World Cup match,
+    using only information known before kickoff — each team's historical win rate and scoring
+    record going into the match, tournament stage, and host status.
+    <br><br>
+    <strong>Trained on</strong> ${data.n_train} team-match records from tournaments through 2014.
+    <strong>Tested on</strong> ${data.n_test} held-out records from ${data.test_years.join(", ")} —
+    tournaments the model never saw during training.
+    <br><br>
+    <span class="limitation-tag">Limitation</span>
+    <span style="display:block; margin-top:6px;">
+      Teams with no prior World Cup history are excluded rather than guessed at, and World Cups
+      occur only once every four years, so historical averages are based on relatively few matches.
+      This model is exploratory — not a betting or forecasting tool.
+    </span>
+  `;
+}
+
+function renderFeatureImportanceChart(rows){
+  destroyChart("featimp");
+  const ctx = document.getElementById("chart-feature-importance");
+  if(!rows.length) return;
+  const sorted = rows.slice().sort((a,b)=>a.coefficient-b.coefficient);
+  charts.featimp = new Chart(ctx, {
+    type:"bar",
+    data:{
+      labels: sorted.map(r=>r.feature.replaceAll("_"," ")),
+      datasets:[{
+        data: sorted.map(r=>r.coefficient),
+        backgroundColor: sorted.map(r => r.coefficient >= 0 ? PALETTE.pitchDim : PALETTE.lossDim),
+        borderColor: sorted.map(r => r.coefficient >= 0 ? PALETTE.pitch : PALETTE.loss),
+        borderWidth:1.5, borderRadius:4,
+      }]
+    },
+    options:{
+      indexAxis:"y",
+      responsive:true, maintainAspectRatio:false,
+      scales:{ x:{grid:{color:"#1b2430"}}, y:{grid:{display:false}, ticks:{font:{size:11}}} },
+      plugins:{legend:{display:false}}
+    }
+  });
+}
+
+// ---------------------------------------------------------------
+// Filter wiring
+// ---------------------------------------------------------------
+function refreshAll(){
+  updateActivePill();
+  loadOverview();
+  loadCountryView();
+}
+
+document.getElementById("country-select").addEventListener("change", (e) => {
+  selectedCountry = e.target.value;
+  refreshAll();
+});
+document.getElementById("year-select").addEventListener("change", (e) => {
+  selectedYear = e.target.value;
+  refreshAll();
+});
+document.getElementById("reset-btn").addEventListener("click", () => {
+  selectedCountry = ""; selectedYear = "";
+  document.getElementById("country-select").value = "";
+  document.getElementById("year-select").value = "";
+  refreshAll();
+});
+
+// ---------------------------------------------------------------
+// Boot
+// ---------------------------------------------------------------
+(async function boot(){
+  await initFilters();
+  loadOverview();
+  loadCountryView();
+  loadMLSection();
+})();
+</script>
+</body>
+</html>

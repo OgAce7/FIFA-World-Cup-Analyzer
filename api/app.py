@@ -76,6 +76,18 @@ long_df = pd.read_csv(MATCHES_LONG_PATH)
 app = Flask(__name__)
 
 
+@app.after_request
+def add_cors_headers(response):
+    """
+    Minimal CORS support so the static frontend (served from a different
+    origin/port) can call this API. Adds headers only — no route logic,
+    validation, or analytical behavior is changed.
+    """
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET"
+    return response
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
