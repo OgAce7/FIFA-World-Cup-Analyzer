@@ -128,6 +128,18 @@ def handle_value_error(err):
     return jsonify({"error": f"Invalid parameter: {err}"}), 400
 
 
+@app.errorhandler(404)
+def handle_not_found(err):
+    """
+    BUG FIX (audit findings M1/L2): unmatched routes and int-converter
+    failures (e.g. /api/tournaments/abc, /api/nonexistent) previously fell
+    through to Flask's default HTML 404 page, violating "return clean
+    JSON." Every 404 now returns the same structured JSON error shape as
+    every other error in this API.
+    """
+    return jsonify({"error": "Not found. Check the endpoint path and parameter types."}), 404
+
+
 # ---------------------------------------------------------------------------
 # 2 & 3. Available countries / years
 # ---------------------------------------------------------------------------
