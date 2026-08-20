@@ -205,6 +205,8 @@
   @keyframes spin{to{transform:rotate(360deg);}}
   @media (prefers-reduced-motion: reduce){ .spinner{animation:none;} }
 
+  .chart-card .chart-empty-msg{flex:1; min-height:180px;}
+
   .empty-hint{font-size:13px; color:var(--text-dim);}
 
   /* ---------- Country view ---------- */
@@ -451,6 +453,34 @@ function showGridState(gridEl, message, isError){
   </div>`;
 }
 
+// Toggles a "no data" message in place of a chart's canvas, without
+// touching layout elsewhere. Called by every render*Chart function.
+function setChartEmpty(canvasId, isEmpty, message){
+  const canvas = document.getElementById(canvasId);
+  const card = canvas.closest(".chart-card");
+  let msg = card.querySelector(".chart-empty-msg");
+  if(isEmpty){
+    canvas.style.display = "none";
+    if(!msg){
+      msg = document.createElement("div");
+      msg.className = "chart-empty-msg state-box";
+      card.appendChild(msg);
+    }
+    msg.innerHTML = `<span>${message || "No data available for this filter."}</span>`;
+  } else if(msg){
+    msg.remove();
+    canvas.style.display = "";
+  } else {
+    canvas.style.display = "";
+  }
+}
+
+// Request-id guards: if the user changes filters again before an
+// in-flight request resolves, the stale response is discarded instead
+// of overwriting newer data on screen.
+let overviewRequestId = 0;
+let countryRequestId = 0;
+
 // ---------------------------------------------------------------
 // State
 // ---------------------------------------------------------------
@@ -500,6 +530,7 @@ function updateActivePill(){
 // Overview (global) section
 // ---------------------------------------------------------------
 async function loadOverview(){
+  const myId = ++overviewRequestId;
   const kpiGrid = document.getElementById("kpi-grid");
   const sub = document.getElementById("overview-sub");
   sub.textContent = selectedYear ? `Tournament: ${selectedYear}` : "All tournaments, 1930–2026";
@@ -511,9 +542,11 @@ async function loadOverview(){
   try{
     data = await apiGet(path);
   }catch(err){
+    if(myId !== overviewRequestId) return; // a newer filter change superseded this request
     showGridState(kpiGrid, err.message, true);
     return;
   }
+  if(myId !== overviewRequestId) return; // stale response — a newer request is already in flight
 
   renderOverviewKPIs(kpiGrid, data);
   renderScatter(data.goals_per_tournament);
@@ -557,7 +590,8 @@ function renderOverviewKPIs(grid, data){
 function renderScatter(rows){
   destroyChart("scatter");
   const ctx = document.getElementById("chart-scatter");
-  if(!rows.length){ return; }
+  if(!rows.length){ setChartEmpty("chart-scatter", true, "No goals data available."); return; }
+  setChartEmpty("chart-scatter", false);
   charts.scatter = new Chart(ctx, {
     type: "scatter",
     data: {
@@ -583,7 +617,8 @@ function renderScatter(rows){
 function renderStageChart(rows){
   destroyChart("stage");
   const ctx = document.getElementById("chart-stage");
-  if(!rows.length) return;
+  if(!rows.length){ setChartEmpty("chart-stage", true, "No stage data for this filter."); return; }
+  setChartEmpty("chart-stage", false);
   charts.stage = new Chart(ctx, {
     type: "bar",
     data:{
@@ -602,7 +637,8 @@ function renderResultMethodChart(canvasId, rows){
   const key = canvasId;
   destroyChart(key);
   const ctx = document.getElementById(canvasId);
-  if(!rows || !rows.length) return;
+  if(!rows || !rows.length){ setChartEmpty(canvasId, true, "No result-method data for this filter."); return; }
+  setChartEmpty(canvasId, false);
   charts[key] = new Chart(ctx, {
     type:"doughnut",
     data:{
@@ -623,7 +659,8 @@ function renderResultMethodChart(canvasId, rows){
 function renderTopTeamsChart(rows){
   destroyChart("topteams");
   const ctx = document.getElementById("chart-top-teams");
-  if(!rows.length) return;
+  if(!rows.length){ setChartEmpty("chart-top-teams", true, "No team data for this filter."); return; }
+  setChartEmpty("chart-top-teams", false);
   charts.topteams = new Chart(ctx, {
     type:"bar",
     data:{
@@ -642,7 +679,8 @@ function renderTopTeamsChart(rows){
 function renderMarginChart(rows){
   destroyChart("margin");
   const ctx = document.getElementById("chart-margin");
-  if(!rows.length) return;
+  if(!rows.length){ setChartEmpty("chart-margin", true, "No goal-margin data for this filter."); return; }
+  setChartEmpty("chart-margin", false);
   charts.margin = new Chart(ctx, {
     type:"bar",
     data:{
@@ -670,6 +708,7 @@ function renderHostList(rows){
 // Country view
 // ---------------------------------------------------------------
 async function loadCountryView(){
+  const myId = ++countryRequestId;
   const section = document.getElementById("country-view");
   const kpiGrid = document.getElementById("country-kpi-grid");
 
@@ -688,9 +727,11 @@ async function loadCountryView(){
   try{
     data = await apiGet(`/api/countries/${encodeURIComponent(selectedCountry)}${yearParam}`);
   }catch(err){
+    if(myId !== countryRequestId) return; // superseded by a newer filter change
     showGridState(kpiGrid, err.message, true);
     return;
   }
+  if(myId !== countryRequestId) return; // stale response — a newer request is already in flight
 
   renderCountryKPIs(kpiGrid, data);
   renderCountryRecordChart(data.record_by_year);
@@ -740,7 +781,8 @@ function renderCountryKPIs(grid, data){
 function renderCountryRecordChart(rows){
   destroyChart("crecord");
   const ctx = document.getElementById("chart-country-record");
-  if(!rows.length) return;
+  if(!rows.length){ setChartEmpty("chart-country-record", true, "No matches for this filter."); return; }
+  setChartEmpty("chart-country-record", false);
   charts.crecord = new Chart(ctx, {
     type:"bar",
     data:{
@@ -762,7 +804,8 @@ function renderCountryRecordChart(rows){
 function renderCountryGoalsChart(rows){
   destroyChart("cgoals");
   const ctx = document.getElementById("chart-country-goals");
-  if(!rows.length) return;
+  if(!rows.length){ setChartEmpty("chart-country-goals", true, "No matches for this filter."); return; }
+  setChartEmpty("chart-country-goals", false);
   charts.cgoals = new Chart(ctx, {
     type:"bar",
     data:{
@@ -783,7 +826,8 @@ function renderCountryGoalsChart(rows){
 function renderCountryStageChart(rows){
   destroyChart("cstage");
   const ctx = document.getElementById("chart-country-stage");
-  if(!rows.length) return;
+  if(!rows.length){ setChartEmpty("chart-country-stage", true, "No matches for this filter."); return; }
+  setChartEmpty("chart-country-stage", false);
   charts.cstage = new Chart(ctx, {
     type:"line",
     data:{
@@ -810,7 +854,8 @@ function renderCountryStageChart(rows){
 function renderCountryOpponentsChart(rows){
   destroyChart("copponents");
   const ctx = document.getElementById("chart-country-opponents");
-  if(!rows.length) return;
+  if(!rows.length){ setChartEmpty("chart-country-opponents", true, "No opponent data for this filter."); return; }
+  setChartEmpty("chart-country-opponents", false);
   charts.copponents = new Chart(ctx, {
     type:"bar",
     data:{
@@ -888,7 +933,8 @@ async function loadMLSection(){
 function renderFeatureImportanceChart(rows){
   destroyChart("featimp");
   const ctx = document.getElementById("chart-feature-importance");
-  if(!rows.length) return;
+  if(!rows.length){ setChartEmpty("chart-feature-importance", true, "No feature importance data available."); return; }
+  setChartEmpty("chart-feature-importance", false);
   const sorted = rows.slice().sort((a,b)=>a.coefficient-b.coefficient);
   charts.featimp = new Chart(ctx, {
     type:"bar",
