@@ -133,15 +133,22 @@ def goals_per_tournament(matches_df: pd.DataFrame) -> pd.DataFrame:
     """
     G1 (default global scatter). Average goals per match, per tournament.
 
+    BUG FIX (audit finding M3): the count column is named
+    matches_with_score_data, not matches_played — a tournament with a
+    walkover (no fulltime score) will show a count one lower than its
+    actual total match count, since that row has no goals to average.
+    The old name "matches_played" implied total tournament matches, which
+    was misleading for 1938 (19 played, 18 with score data).
+
     Data required: matches_clean
-    Returns: DataFrame [world_cup_year, avg_goals_per_match, matches_played]
+    Returns: DataFrame [world_cup_year, avg_goals_per_match, matches_with_score_data]
     """
     valid = matches_df[matches_df["total_goals_match"].notna()]
     result = (
         valid.groupby("world_cup_year")
         .agg(
             avg_goals_per_match=("total_goals_match", "mean"),
-            matches_played=("match_id", "count"),
+            matches_with_score_data=("match_id", "count"),
         )
         .reset_index()
         .sort_values("world_cup_year")
@@ -225,6 +232,13 @@ def host_country_summary(matches_df: pd.DataFrame, year: int | None = None) -> p
     G5. Number of tournaments hosted per country (one row per tournament,
     deduplicated, since host_country repeats across every match row).
 
+    BUG FIX (audit finding M2): multi-host tournaments (e.g. 2026's
+    "Canada, Mexico, United States") were previously kept as one combined
+    string bucket, undercounting each individual co-host nation (Mexico
+    showed only 2 tournaments instead of 3; United States 1 instead of 2).
+    host_country is now split on its comma delimiter and exploded so each
+    co-host country is credited individually for that tournament.
+
     Data required: matches_clean
     Filters: world_cup_year (optional; scopes to a single tournament's host)
     Returns: DataFrame [host_country, tournaments_hosted, years_hosted]
@@ -233,7 +247,11 @@ def host_country_summary(matches_df: pd.DataFrame, year: int | None = None) -> p
         validate_year(matches_df, year)
     scoped = apply_year_filter(matches_df, year)
 
-    tournaments = scoped[["world_cup_year", "host_country"]].drop_duplicates()
+    tournaments = scoped[["world_cup_year", "host_country"]].drop_duplicates().copy()
+    tournaments["host_country"] = tournaments["host_country"].str.split(", ")
+    tournaments = tournaments.explode("host_country")
+    tournaments["host_country"] = tournaments["host_country"].str.strip()
+
     result = (
         tournaments.groupby("host_country")["world_cup_year"]
         .apply(lambda s: sorted(s.unique().tolist()))

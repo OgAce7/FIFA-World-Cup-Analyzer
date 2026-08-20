@@ -125,8 +125,11 @@ def standardize_names(df: pd.DataFrame) -> pd.DataFrame:
 
     df["host_country"] = df["host_country"].replace(TEAM_NAME_MAP)
 
-    # Stage 2.2 - historical entity flag (team1 or team2 involved)
-    df["is_historical_entity"] = (
+    # Stage 2.2 - historical entity flag, at MATCH level (either side involved).
+    # This is intentionally match-scoped, not team-scoped - it answers "did this
+    # match involve a defunct nation," not "is this team defunct." A team-scoped
+    # version is computed separately in build_matches_long() for per-team filtering.
+    df["match_involves_historical_entity"] = (
         df["team1"].isin(HISTORICAL_ENTITIES) | df["team2"].isin(HISTORICAL_ENTITIES)
     )
 
@@ -189,12 +192,22 @@ def deduplicate(df: pd.DataFrame) -> tuple[pd.DataFrame, int]:
 
 
 def build_matches_long(df: pd.DataFrame) -> pd.DataFrame:
-    """Stage 4.7 — reshape to one row per team per match."""
+    """Stage 4.7 — reshape to one row per team per match.
+
+    BUG FIX (audit finding H1): is_historical_entity must reflect whether
+    THIS ROW'S team is a defunct/historical entity, not whether EITHER side
+    of the match was. Previously this column copied the match-level flag
+    (team1 OR team2 historical) onto both team-perspective rows, which meant
+    a modern team's row was incorrectly flagged historical whenever its
+    opponent was a historical entity — corrupting top_teams_by_wins() when
+    called with include_historical=False. It is now computed fresh, per row,
+    from that row's own `team` column.
+    """
     base_cols = [
         "match_id", "world_cup_year", "host_country", "date", "stage",
         "tournament_stage_order", "group", "result_method",
         "is_walkover", "went_to_extra_time", "went_to_penalties",
-        "has_halftime_data", "is_historical_entity",
+        "has_halftime_data",
     ]
 
     team1_view = df[base_cols + ["team1", "team2", "fulltime_score_team1", "fulltime_score_team2", "team1_result"]].copy()
@@ -216,6 +229,10 @@ def build_matches_long(df: pd.DataFrame) -> pd.DataFrame:
     })
 
     matches_long = pd.concat([team1_view, team2_view], ignore_index=True)
+
+    # Correctly team-scoped flag: is THIS row's team itself a historical entity.
+    matches_long["is_historical_entity"] = matches_long["team"].isin(HISTORICAL_ENTITIES)
+
     matches_long = matches_long.sort_values(["match_id", "team"]).reset_index(drop=True)
     return matches_long
 
