@@ -1,4 +1,4 @@
-FIFA World Cup Pipeline â€” Run Report
+FIFA World Cup Pipeline — Run Report
 ========================================
 Rows before: 1069
 Rows after:  1069
@@ -35,6 +35,6 @@ Derived columns added:
   - tournament_stage_order
 
 Output files:
-  - /home/claude/project/data/processed/matches_clean.csv
-  - /home/claude/project/data/processed/matches_long.csv
-  - /home/claude/project/data/processed/team_name_map.csv
+  - C:\Users\devan\OneDrive\Desktop\GV Project\data\processed\matches_clean.csv
+  - C:\Users\devan\OneDrive\Desktop\GV Project\data\processed\matches_long.csv
+  - C:\Users\devan\OneDrive\Desktop\GV Project\data\processed\team_name_map.csv

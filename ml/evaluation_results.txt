@@ -1,4 +1,4 @@
-FIFA World Cup Win Predictor â€” Evaluation Results
+FIFA World Cup Win Predictor — Evaluation Results
 ====================================================
 Train rows (team-per-match, with prior history): 1528
 Test rows  (2018, 2022, 2026 tournaments only)  : 448

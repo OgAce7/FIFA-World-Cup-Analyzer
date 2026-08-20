@@ -64,43 +64,43 @@
   "feature_importance": [
     {
       "feature": "team_prior_avg_goals_for",
-      "coefficient": 0.49594530857215074
+      "coefficient": 0.4959453085721512
     },
     {
       "feature": "opp_prior_avg_goals_for",
-      "coefficient": -0.44585590929852026
+      "coefficient": -0.4458559092985201
     },
     {
       "feature": "opp_prior_matches_played",
-      "coefficient": -0.3758427951578533
+      "coefficient": -0.37584279515785324
     },
     {
       "feature": "team_prior_avg_goals_against",
-      "coefficient": -0.35215880869181526
+      "coefficient": -0.3521588086918153
     },
     {
       "feature": "team_prior_matches_played",
-      "coefficient": 0.3519141208539444
+      "coefficient": 0.35191412085394425
     },
     {
       "feature": "is_host",
-      "coefficient": 0.3193136206249007
+      "coefficient": 0.3193136206249006
     },
     {
       "feature": "opp_prior_avg_goals_against",
-      "coefficient": 0.28400280757488633
+      "coefficient": 0.2840028075748863
     },
     {
       "feature": "tournament_stage_order",
-      "coefficient": 0.20551570206735054
+      "coefficient": 0.20551570206735073
     },
     {
       "feature": "team_prior_win_rate",
-      "coefficient": -0.1946868549425475
+      "coefficient": -0.19468685494254742
     },
     {
       "feature": "opp_prior_win_rate",
-      "coefficient": 0.1576336772612046
+      "coefficient": 0.15763367726120434
     }
   ]
 }

@@ -157,9 +157,17 @@ def build_feature_table(long_df: pd.DataFrame) -> pd.DataFrame:
     df = df.merge(opp_stats, on=["match_id", "opponent"], how="left", suffixes=("", "_dup"))
     df = df.drop(columns=[c for c in df.columns if c.endswith("_dup")])
 
-    # Host status: is this team playing in its own hosted tournament
-    # (string containment handles multi-host tournaments like "Canada, Mexico, United States")
-    df["is_host"] = df.apply(lambda r: str(r["team"]) in str(r["host_country"]), axis=1).astype(int)
+    # Host status: is this team playing in its own hosted tournament.
+    # host_country is comma-delimited for multi-host tournaments (e.g.
+    # "Canada, Mexico, United States"); split and match exactly against
+    # that list rather than substring-containment, which would wrongly
+    # flag e.g. team "Germany" as host whenever host_country happened to
+    # contain it as a substring (as in "West Germany").
+    host_lists = df["host_country"].astype(str).str.split(", ")
+    df["is_host"] = [
+        team in hosts for team, hosts in zip(df["team"].astype(str), host_lists)
+    ]
+    df["is_host"] = df["is_host"].astype(int)
 
     # Target
     df["team_won"] = (df["result"] == "Win").astype(int)
