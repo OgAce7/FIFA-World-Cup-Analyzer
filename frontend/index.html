@@ -561,8 +561,8 @@ function renderOverviewKPIs(grid, data){
   const totalMatches = data.matches_by_stage.reduce((s,r) => s + r.match_count, 0);
   const totalGoalsRow = data.goals_per_tournament;
   const avgGoals = totalGoalsRow.length
-    ? (totalGoalsRow.reduce((s,r)=>s+r.avg_goals_per_match*r.matches_played,0) /
-       totalGoalsRow.reduce((s,r)=>s+r.matches_played,0)).toFixed(2)
+    ? (totalGoalsRow.reduce((s,r)=>s+r.avg_goals_per_match*r.matches_with_score_data,0) /
+       totalGoalsRow.reduce((s,r)=>s+r.matches_with_score_data,0)).toFixed(2)
     : "—";
   const tournamentsCount = selectedYear ? 1 : totalGoalsRow.length;
   const topTeam = data.top_teams_by_wins[0];
