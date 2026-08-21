@@ -131,7 +131,3 @@ or forecasting tool.
 `data/raw/fifa_world_cup_all_matches_1930_2026.csv` — match-level results for
 every FIFA World Cup from 1930 through 2026, including host, stage, scores at
 halftime/fulltime/extra time/penalties, and result method.
-
-## License
-
-No license has been specified for this project.
